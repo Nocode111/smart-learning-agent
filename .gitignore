@@ -31,6 +31,9 @@ backend/uploads/
 .agent_file_ops/
 backend/.agent_file_ops/
 agent_workspace/
+doc/
+docs/
+word/
 
 # Logs and databases
 *.log
