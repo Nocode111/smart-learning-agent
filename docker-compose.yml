@@ -1,0 +1,84 @@
+services:
+  mysql:
+    image: mysql:8
+    container_name: smart_learning_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: smart_learning
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  redis:
+    image: redis:7
+    container_name: smart_learning_redis
+    ports:
+      - "6379:6379"
+
+  chroma:
+    image: chromadb/chroma:0.5.5
+    container_name: smart_learning_chroma
+    ports:
+      - "8001:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+
+  neo4j:
+    image: neo4j:5
+    container_name: smart_learning_neo4j
+    profiles:
+      - graphiti
+    environment:
+      NEO4J_AUTH: neo4j/please_change_graphiti_password
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - neo4j_data:/data
+
+  graphiti-service:
+    build: ./graphiti-service
+    container_name: smart_learning_graphiti_service
+    profiles:
+      - graphiti
+    env_file:
+      - ./backend/.env
+    environment:
+      GRAPHITI_URI: bolt://neo4j:7687
+      GRAPHITI_USER: neo4j
+      GRAPHITI_PASSWORD: please_change_graphiti_password
+      GRAPHITI_GROUP_PREFIX: smart_learning
+      GRAPHITI_SEARCH_LIMIT: 5
+      GRAPHITI_BUILD_INDICES_ON_START: "false"
+    ports:
+      - "8010:8010"
+    depends_on:
+      - neo4j
+
+  backend:
+    build: ./backend
+    container_name: smart_learning_backend
+    env_file:
+      - ./backend/.env
+    environment:
+      GRAPHITI_SERVICE_URL: http://graphiti-service:8010
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mysql
+      - redis
+      - chroma
+
+  frontend:
+    build: ./frontend
+    container_name: smart_learning_frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:
+  chroma_data:
+  neo4j_data:
